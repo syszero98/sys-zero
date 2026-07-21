@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Syszero</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <style>
+        .admin-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .phase-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            margin-bottom: 20px;
+            animation: slideInUp 0.6s ease;
+        }
+
+        .phase-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <h1>🔐 Syszero Admin</h1>
+                <p>Control Panel</p>
+            </div>
+            <button id="logoutBtn" class="admin-btn" title="Logout">🚪</button>
+        </div>
+
+        <!-- PHASE 1: Login -->
+        <div id="phase1" class="phase-card">
+            <h2 class="phase-title">Phase 1️⃣ - Authentication</h2>
+            <div class="form-group">
+                <label for="passcode">Admin Passcode *</label>
+                <input type="password" id="passcode" placeholder="Enter admin passcode" required>
+            </div>
+            <button id="loginBtn" class="btn-search">Login</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+
+        <!-- PHASE 2: Data Sync (Hidden) -->
+        <div id="phase2" class="phase-card" style="display: none;">
+            <h2 class="phase-title">Phase 2️⃣ - Data Sync</h2>
+            
+            <div class="form-group">
+                <label for="classInput">Class *</label>
+                <input type="text" id="classInput" placeholder="e.g., 9" required>
+            </div>
+
+            <div class="form-group">
+                <label for="yearInput">Academic Year *</label>
+                <input type="number" id="yearInput" placeholder="e.g., 2024" required>
+            </div>
+
+            <div class="form-group">
+                <label for="examInput">Exam Name *</label>
+                <input type="text" id="examInput" placeholder="e.g., Midterm" required>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Excel File *</label>
+                <div class="upload-area" id="uploadArea">
+                    <div>📁 Click to upload or drag & drop</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 10px;">
+                        Excel file with columns: Roll, Name, Subject1, Subject2, ...
+                    </div>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                </div>
+            </div>
+
+            <button id="uploadBtn" class="btn-search">Upload & Sync</button>
+            <div id="uploadError" class="error-message"></div>
+            <div id="uploadSuccess" class="error-message" style="color: #22c55e;"></div>
+        </div>
+
+        <!-- PHASE 3: Success & Status (Hidden) -->
+        <div id="phase3" class="phase-card" style="display: none;">
+            <h2 class="phase-title">Phase 3️⃣ - Sync Status</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number" id="classCount">0</div>
+                    <div class="stat-label">Classes</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="examCount">0</div>
+                    <div class="stat-label">Exams</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="studentCount">0</div>
+                    <div class="stat-label">Students</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #22c55e; font-size: 18px; margin-bottom: 20px;">✅ Sync Completed Successfully!</p>
+                <button id="logoutBtn2" class="btn-search">Logout & Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AdminPanel {
+            constructor() {
+                this.sessionToken = localStorage.getItem('adminToken');
+                this.currentPhase = 1;
+                
+                if (this.sessionToken) {
+                    this.goToPhase2();
+                } else {
+                    this.setupPhase1();
+                }
+                
+                this.setupFileUpload();
+            }
+
+            setupPhase1() {
+                document.getElementById('phase1').style.display = 'block';
+                document.getElementById('loginBtn').addEventListener('click', () => this.handleLogin());
+                document.getElementById('passcode').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.handleLogin();
+                });
+            }
+
+            async handleLogin() {
+                const passcode = document.getElementById('passcode').value.trim();
+                
+                if (!passcode) {
+                    this.showError('loginError', 'Passcode required');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ passcode })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        localStorage.setItem('adminToken', result.sessionToken);
+                        this.sessionToken = result.sessionToken;
+                        this.goToPhase2();
+                    } else {
+                        this.showError('loginError', result.message || 'Invalid passcode');
+                    }
+                } catch (error) {
+                    this.showError('loginError', 'Connection error');
+                }
+            }
+
+            goToPhase2() {
+                document.getElementById('phase1').style.display = 'none';
+                document.getElementById('phase2').style.display = 'block';
+                this.currentPhase = 2;
+            }
+
+            setupFileUpload() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+
+                uploadArea.addEventListener('click', () => fileInput.click());
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    fileInput.files = e.dataTransfer.files;
+                });
+
+                document.getElementById('uploadBtn').addEventListener('click', () => this.handleUpload());
+            }
+
+            async handleUpload() {
+                const classInput = document.getElementById('classInput').value.trim();
+                const yearInput = document.getElementById('yearInput').value.trim();
+                const examInput = document.getElementById('examInput').value.trim();
+                const fileInput = document.getElementById('fileInput');
+
+                if (!classInput || !yearInput || !examInput || !fileInput.files[0]) {
+                    this.showError('uploadError', 'Please fill all fields and select a file');
+                    return;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('class', classInput);
+                    formData.append('year', yearInput);
+                    formData.append('exam', examInput);
+                    formData.append('file', fileInput.files[0]);
+
+                    const response = await fetch('/api/admin/upload-excel', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.sessionToken}`
+                        },
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showSuccess('uploadSuccess', result.message);
+                        setTimeout(() => this.goToPhase3(), 1500);
+                    } else {
+                        this.showError('uploadError', result.message || 'Upload failed');
+                    }
+                } catch (error) {
+                    this.showError('uploadError', 'Connection error');
+                }
+            }
+
+            async goToPhase3() {
+                document.getElementById('phase2').style.display = 'none';
+                document.getElementById('phase3').style.display = 'block';
+                this.currentPhase = 3;
+
+                try {
+                    const response = await fetch('/api/admin/sync-status', {
+                        headers: {
+                            'Authorization': `Bearer ${this.sessionToken}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        document.getElementById('classCount').textContent = result.stats.totalClasses;
+                        document.getElementById('examCount').textContent = result.stats.totalExams;
+                        document.getElementById('studentCount').textContent = result.stats.totalStudents;
+                    }
+                } catch (error) {
+                    console.error('Error fetching stats:', error);
+                }
+            }
+
+            async logout() {
+                try {
+                    await fetch('/api/admin/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.sessionToken}`
+                        }
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+
+                localStorage.removeItem('adminToken');
+                window.location.href = '/';
+            }
+
+            showError(elementId, message) {
+                const elem = document.getElementById(elementId);
+                elem.textContent = message;
+                elem.classList.add('show');
+            }
+
+            showSuccess(elementId, message) {
+                const elem = document.getElementById(elementId);
+                elem.textContent = '✅ ' + message;
+                elem.classList.add('show');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const admin = new AdminPanel();
+            
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'logoutBtn' || e.target.id === 'logoutBtn2') {
+                    admin.logout();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

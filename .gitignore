@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.env
+.venv
+venv/
+data/*.json
+*.xlsx
+*.csv
+.DS_Store
+node_modules/
+.idea/
+.vscode/
+*.log

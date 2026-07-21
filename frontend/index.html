@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Result Portal - Syszero</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <h1>📚 Syszero</h1>
+                <p>Student Result Portal</p>
+            </div>
+            <div class="admin-gateway">
+                <button id="adminGateway" class="admin-btn" title="Admin Panel">⋮</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Search Card -->
+            <div class="search-card glassmorphic">
+                <h2>Search Your Result</h2>
+                
+                <div class="form-group">
+                    <label for="classSelect">Select Class *</label>
+                    <select id="classSelect" required>
+                        <option value="">-- Choose Class --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="yearSelect">Select Year *</label>
+                    <select id="yearSelect" required>
+                        <option value="">-- Choose Year --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="examSelect">Select Exam *</label>
+                    <select id="examSelect" required>
+                        <option value="">-- Choose Exam --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Search By *</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="searchType" value="roll" checked>
+                            Roll Number
+                        </label>
+                        <label>
+                            <input type="radio" name="searchType" value="name">
+                            Student Name
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="searchInput" id="searchLabel">Enter Roll Number *</label>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Enter Roll Number"
+                        required
+                    >
+                </div>
+
+                <button id="searchBtn" class="btn-search">Get Result</button>
+                <div id="errorMsg" class="error-message"></div>
+            </div>
+
+            <!-- Result Card (Hidden Initially) -->
+            <div id="resultCard" class="result-card glassmorphic" style="display: none;">
+                <div class="result-header">
+                    <h2>📊 Marksheet</h2>
+                    <button id="closeResult" class="close-btn">×</button>
+                </div>
+
+                <div class="student-info">
+                    <div class="info-item">
+                        <span class="label">Name:</span>
+                        <span id="studentName" class="value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Roll:</span>
+                        <span id="studentRoll" class="value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Class:</span>
+                        <span id="studentClass" class="value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Exam:</span>
+                        <span id="studentExam" class="value">-</span>
+                    </div>
+                </div>
+
+                <div class="marks-table-container">
+                    <table class="marks-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Marks</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="marksTableBody">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="printBtn" class="btn-action btn-print">🖨️ Print</button>
+                    <button id="downloadBtn" class="btn-action btn-download">📥 Download PDF</button>
+                    <button id="searchAgainBtn" class="btn-action btn-search-again">🔍 Search Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

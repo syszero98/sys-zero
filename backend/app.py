@@ -1,6 +1,7 @@
 """
 Flask Main Application Server
 Student Result Portal - Syszero
+Integrated with Routes and Utilities
 """
 
 from flask import Flask, render_template, request, jsonify
@@ -8,6 +9,9 @@ from flask_cors import CORS
 import os
 import json
 from datetime import datetime
+from backend.routes.student import student_routes
+from backend.routes.admin import admin_routes
+from backend.utils.auth import verify_session
 
 # Initialize Flask App
 app = Flask(__name__, 
@@ -20,7 +24,12 @@ CORS(app)
 
 # Configuration
 app.config['JSON_SORT_KEYS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'data', 'database.json')
+
+# Register Blueprints
+app.register_blueprint(student_routes)
+app.register_blueprint(admin_routes)
 
 # ==========================================
 # UTILITY FUNCTIONS
@@ -51,9 +60,31 @@ def save_database(data):
 def get_all_options():
     """Get all available Class, Year, Exam options"""
     data = load_database()
-    
-    # Structure: { Class: { Year: { Exam: [...students] } } }
     return data
+
+def require_admin_session(f):
+    """Decorator to require valid admin session"""
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get('Authorization', '')
+        
+        if not auth_header.startswith('Bearer '):
+            return jsonify({
+                'success': False,
+                'message': 'Unauthorized'
+            }), 401
+        
+        session_token = auth_header.replace('Bearer ', '')
+        
+        if not verify_session(session_token):
+            return jsonify({
+                'success': False,
+                'message': 'Invalid or expired session'
+            }), 401
+        
+        return f(*args, **kwargs)
+    
+    wrapper.__name__ = f.__name__
+    return wrapper
 
 # ==========================================
 # STUDENT ROUTES
@@ -156,6 +187,21 @@ def search_result():
         }), 500
 
 # ==========================================
+# ADMIN ROUTES
+# ==========================================
+
+@app.route('/admin')
+def admin_panel():
+    """Render Admin Panel"""
+    return render_template('admin/admin.html')
+
+@app.route('/api/admin/login', methods=['POST'])
+@require_admin_session
+def admin_login():
+    """Admin login endpoint - handled by admin routes"""
+    pass
+
+# ==========================================
 # ERROR HANDLERS
 # ==========================================
 
@@ -172,6 +218,26 @@ def internal_error(error):
         'success': False,
         'message': 'Internal server error'
     }), 500
+
+@app.errorhandler(401)
+def unauthorized(error):
+    return jsonify({
+        'success': False,
+        'message': 'Unauthorized access'
+    }), 401
+
+# ==========================================
+# HEALTH CHECK
+# ==========================================
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'online',
+        'timestamp': datetime.now().isoformat(),
+        'version': '1.0.0'
+    })
 
 # ==========================================
 # MAIN

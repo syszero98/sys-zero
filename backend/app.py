@@ -66,23 +66,23 @@ def require_admin_session(f):
     """Decorator to require valid admin session"""
     def wrapper(*args, **kwargs):
         auth_header = request.headers.get('Authorization', '')
-        
+
         if not auth_header.startswith('Bearer '):
             return jsonify({
                 'success': False,
                 'message': 'Unauthorized'
             }), 401
-        
+
         session_token = auth_header.replace('Bearer ', '')
-        
+
         if not verify_session(session_token):
             return jsonify({
                 'success': False,
                 'message': 'Invalid or expired session'
             }), 401
-        
+
         return f(*args, **kwargs)
-    
+
     wrapper.__name__ = f.__name__
     return wrapper
 
@@ -100,14 +100,14 @@ def get_options():
     """API: Get all Class, Year, Exam options for dropdowns"""
     try:
         data = get_all_options()
-        
+
         # Create structured response
         response_data = {}
         for class_name in data:
             response_data[class_name] = {}
             for year in data[class_name]:
                 response_data[class_name][year] = list(data[class_name][year].keys())
-        
+
         return jsonify({
             'success': True,
             'data': response_data
@@ -123,7 +123,7 @@ def search_result():
     """API: Search student result"""
     try:
         req_data = request.get_json()
-        
+
         class_name = req_data.get('class')
         year = req_data.get('year')
         exam = req_data.get('exam')
@@ -154,19 +154,19 @@ def search_result():
 
         # Search based on type
         student = None
-        
+
         if search_type == 'roll':
             # Search by roll number
             for std in exam_data:
                 if str(std.get('roll', '')).lower() == str(search_value).lower():
-                    student = std
+                    student = dict(std)  # Make a copy of student data
                     break
         else:
             # Search by name
             search_lower = search_value.lower()
             for std in exam_data:
                 if str(std.get('name', '')).lower().startswith(search_lower):
-                    student = std
+                    student = dict(std)  # Make a copy of student data
                     break
 
         if not student:
@@ -174,6 +174,12 @@ def search_result():
                 'success': False,
                 'message': f'No student found with {search_type}: {search_value}'
             }), 404
+
+        # Inject missing exam information for frontend rendering
+        student['exam'] = exam
+        student['exam_name'] = exam
+        student['class'] = class_name
+        student['year'] = year
 
         return jsonify({
             'success': True,

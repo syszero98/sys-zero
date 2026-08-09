@@ -115,23 +115,22 @@ class StudentPortal {
         }
     }
 
-    // Update Exam Dropdown (Dynamic)
+    // Update Exam Dropdown (Dynamic) - FIXED
     updateExamDropdown() {
         const selectedClass = this.classSelect.value;
         const selectedYear = this.yearSelect.value;
         this.examSelect.innerHTML = '<option value="">-- Choose Exam --</option>';
 
         if (selectedClass && selectedYear && this.allData[selectedClass][selectedYear]) {
-            const exams = Object.keys(this.allData[selectedClass][selectedYear]).sort();
-            exams.forEach(exam => {
+            // ✅ FIX: allData[class][year] is an ARRAY of exam names
+            const examsArray = this.allData[selectedClass][selectedYear];
+            
+            examsArray.forEach(exam => {
                 const option = document.createElement('option');
                 option.value = exam;
                 option.textContent = exam;
                 this.examSelect.appendChild(option);
             });
-
-            // Store filtered data for search
-            this.filteredData = this.allData[selectedClass][selectedYear];
         }
     }
 

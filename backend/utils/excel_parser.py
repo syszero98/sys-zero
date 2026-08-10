@@ -1,101 +1,123 @@
 """
 Excel Parser Utility
-Handles Excel file parsing and data extraction
+Handles Excel file parsing and data extraction for both Vocational and General subjects
 """
 
 import os
-from openpyxl import load_workbook
-import json
+import pandas as pd
 
 def parse_excel_file(file_path):
     """
-    Parse Excel file and extract student data
-    Expected columns: Roll, Name, Subject1, Subject2, ...
+    Parse Excel file dynamically and extract student data cleanly.
+    Supports Theory+Practical subjects and prevents Grade calculation bugs.
     """
     try:
-        workbook = load_workbook(file_path)
-        worksheet = workbook.active
+        # pandas দিয়ে সহজে পুরো এক্সেল শিট পড়া
+        df = pd.read_excel(file_path)
         
-        # Extract headers
-        headers = []
-        for cell in worksheet[1]:
-            if cell.value:
-                headers.append(str(cell.value).strip())
-        
-        if not headers or 'Roll' not in headers and 'রোল' not in headers:
+        # কলামের নামের আসেপাশে ফালতু স্পেস থাকলে তা মুছে ফেলা
+        df.columns = df.columns.str.strip()
+
+        # কলাম ভ্যালিডেশন
+        cols_lower = [str(c).lower() for c in df.columns]
+        if 'roll' not in cols_lower and 'রোল' not in cols_lower:
             return None, "Invalid Excel format. Must contain 'Roll' column."
-        
-        # Find Roll and Name columns
-        roll_col = None
-        name_col = None
-        
-        for i, header in enumerate(headers):
-            if header.lower() in ['roll', 'রোল']:
-                roll_col = i
-            elif header.lower() in ['name', 'নাম']:
-                name_col = i
-        
-        if roll_col is None:
-            return None, "Roll column not found"
-        
-        if name_col is None:
-            return None, "Name column not found"
-        
-        # Extract student data
+
+        # রোল এবং নাম কলাম খুঁজে বের করা
+        roll_col = next((c for c in df.columns if str(c).lower() in ['roll', 'রোল']), None)
+        name_col = next((c for c in df.columns if str(c).lower() in ['name', 'নাম']), None)
+
         students = []
-        for row_idx, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not row[roll_col]:  # Skip empty rows
+        skip_cols = {roll_col, name_col, 'Total_Marks', 'Status', 'GPA'}
+
+        for _, row in df.iterrows():
+            if pd.isna(row[roll_col]):
                 continue
-            
-            student = {
-                'roll': str(row[roll_col]).strip(),
-                'name': str(row[name_col]).strip() if name_col < len(row) else '',
-                'subjects': []
-            }
-            
-            # Extract subject marks
-            for col_idx, header in enumerate(headers):
-                if col_idx not in [roll_col, name_col] and header.lower() not in ['roll', 'রোল', 'name', 'নাম']:
-                    try:
-                        marks = float(row[col_idx]) if col_idx < len(row) and row[col_idx] else 0
-                        grade = get_grade(marks)
+
+            subjects = []
+            processed_subjects = set()
+
+            for col in df.columns:
+                if col in skip_cols or col is None:
+                    continue
+
+                # ১. ভোকেশনাল / প্র্যাকটিক্যাল ওয়ালা সাবজেক্ট (যেমন: IT3_Theory, IT3_Practical, IT3_Grade)
+                if '_Theory' in col or '_Practical' in col or '_Grade' in col:
+                    base_sub = col.split('_')[0]
+                    if base_sub not in processed_subjects:
+                        processed_subjects.add(base_sub)
                         
-                        student['subjects'].append({
-                            'name': header,
-                            'marks': marks,
-                            'grade': grade
+                        theory = row.get(f"{base_sub}_Theory")
+                        practical = row.get(f"{base_sub}_Practical")
+                        grade = row.get(f"{base_sub}_Grade", "-")
+
+                        # মার্কস সাজানো
+                        if pd.notna(theory) and pd.notna(practical):
+                            marks_str = f"T: {int(theory)}, P: {int(practical)}"
+                        elif pd.notna(theory):
+                            marks_str = str(int(theory))
+                        elif pd.notna(practical):
+                            marks_str = f"P: {int(practical)}"
+                        else:
+                            marks_str = "-"
+
+                        subjects.append({
+                            "name": base_sub,
+                            "marks": marks_str,
+                            "grade": str(grade) if pd.notna(grade) and str(grade) != 'nan' else "-"
                         })
-                    except:
-                        pass
-            
-            students.append(student)
-        
+
+                # ২. সাধারণ বিষয় (যেমন: Bangla, Math বা Bangla_Marks)
+                else:
+                    base_sub = col.replace('_Marks', '')
+                    if base_sub not in processed_subjects:
+                        processed_subjects.add(base_sub)
+                        
+                        grade = row.get(f"{base_sub}_Grade", row.get(f"{col}_Grade", "-"))
+                        marks_val = row.get(col, "-")
+
+                        if pd.notna(marks_val) and isinstance(marks_val, (int, float)):
+                            marks_str = str(int(marks_val))
+                        elif pd.notna(marks_val):
+                            marks_str = str(marks_val)
+                        else:
+                            marks_str = "-"
+
+                        subjects.append({
+                            "name": base_sub,
+                            "marks": marks_str,
+                            "grade": str(grade) if pd.notna(grade) and str(grade) != 'nan' else "-"
+                        })
+
+            # রো লেভেল মেটাডাটা
+            roll_val = str(int(row[roll_col])) if pd.notna(row[roll_col]) else ""
+            name_val = str(row[name_col]).strip() if name_col and pd.notna(row[name_col]) else ""
+            total_marks = str(int(row['Total_Marks'])) if 'Total_Marks' in row and pd.notna(row['Total_Marks']) else "-"
+            status_val = str(row.get('Status', 'Pass')) if pd.notna(row.get('Status')) else "Pass"
+            gpa_val = str(row['GPA']) if 'GPA' in row and pd.notna(row['GPA']) else "0.00"
+
+            student_data = {
+                "roll": roll_val,
+                "name": name_val,
+                "total_marks": total_marks,
+                "status": status_val,
+                "gpa": gpa_val,
+                "subjects": subjects
+            }
+            students.append(student_data)
+
         return students, "Success"
-    
+
     except Exception as e:
         return None, f"Error parsing Excel: {str(e)}"
 
-def get_grade(marks):
-    """Calculate grade based on marks"""
-    if marks >= 80:
-        return 'A'
-    elif marks >= 70:
-        return 'B'
-    elif marks >= 60:
-        return 'C'
-    elif marks >= 50:
-        return 'D'
-    elif marks >= 40:
-        return 'E'
-    else:
-        return 'F'
 
 def validate_file(file_path):
     """Validate if file is valid Excel"""
     if not os.path.exists(file_path):
         return False, "File not found"
-    
+
     if not file_path.endswith(('.xlsx', '.xls')):
         return False, "Invalid file format. Use .xlsx or .xls"
-    
+
     return True, "Valid"

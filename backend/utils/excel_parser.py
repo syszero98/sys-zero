@@ -121,3 +121,6 @@ def validate_file(file_path):
         return False, "Invalid file format. Use .xlsx or .xls"
 
     return True, "Valid"
+def get_grade(marks):
+    """Dummy function to satisfy legacy imports"""
+    return "-"

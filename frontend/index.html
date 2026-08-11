@@ -24,7 +24,7 @@
             <!-- Search Card -->
             <div class="search-card glassmorphic">
                 <h2>Search Your Result</h2>
-                
+
                 <div class="form-group">
                     <label for="classSelect">Select Class *</label>
                     <select id="classSelect" required>
@@ -117,12 +117,129 @@
 
                 <div class="action-buttons">
                     <button id="printBtn" class="btn-action btn-print">🖨️ Print</button>
-                    <button id="downloadBtn" class="btn-action btn-download">📥 Download PDF</button>
+                    <!-- Download PDF button updated for prank paywall -->
+                    <button id="downloadBtn" class="btn-action btn-download" onclick="openPaywall()">📥 Download PDF</button>
                     <button id="searchAgainBtn" class="btn-action btn-search-again">🔍 Search Again</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Prank Paywall Modal Overlay -->
+    <div id="paywallModal" class="modal-overlay">
+        <div class="modal-card">
+            <span class="modal-close" onclick="closePaywall()">&times;</span>
+            <div class="modal-header">
+                <h2>🔒 Premium Feature Locked</h2>
+                <p>To generate & download the official PDF transcript, please clear the service charge.</p>
+            </div>
+            
+            <div class="price-tag">
+                <span class="currency">$</span>8,900<span class="cents">.00 USD</span>
+            </div>
+
+            <form id="fakePayForm" onsubmit="handleFakePayment(event)">
+                <div class="input-group">
+                    <label>Cardholder Name</label>
+                    <input type="text" placeholder="John Doe" required>
+                </div>
+                
+                <div class="input-group">
+                    <label>Card Number</label>
+                    <input type="text" placeholder="4111 •••• •••• 1111" maxlength="19" required>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Expiry Date</label>
+                        <input type="text" placeholder="MM/YY" maxlength="5" required>
+                    </div>
+                    <div class="input-group">
+                        <label>CVC / CWW</label>
+                        <input type="password" placeholder="123" maxlength="3" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="pay-btn">💳 Pay $8,900.00 via Credit/Debit Card</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal CSS Styling -->
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 24px; cursor: pointer; color: #888;
+            font-weight: bold;
+        }
+
+        .modal-header h2 { margin: 0; color: #d9534f; font-size: 20px; }
+        .modal-header p { font-size: 13px; color: #666; margin-top: 5px; }
+
+        .price-tag {
+            font-size: 36px; font-weight: bold; color: #111;
+            text-align: center; margin: 20px 0;
+        }
+        .price-tag .currency { font-size: 20px; vertical-align: super; }
+        .price-tag .cents { font-size: 18px; color: #666; }
+
+        .input-group { margin-bottom: 12px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; color: #444; margin-bottom: 4px; font-weight: bold; }
+        .input-group input {
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 6px; box-sizing: border-box; font-size: 14px;
+        }
+
+        .input-row { display: flex; gap: 10px; }
+
+        .pay-btn {
+            width: 100%; background: #0070ba; color: white; border: none;
+            padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold;
+            cursor: pointer; margin-top: 10px; transition: background 0.2s;
+        }
+        .pay-btn:hover { background: #005ea6; }
+    </style>
+
+    <!-- Prank Paywall Logic -->
+    <script>
+        function openPaywall() {
+            document.getElementById('paywallModal').style.display = 'flex';
+        }
+
+        function closePaywall() {
+            document.getElementById('paywallModal').style.display = 'none';
+        }
+
+        function handleFakePayment(event) {
+            event.preventDefault();
+            alert("❌ Transaction Failed!\n\nReason: Insufficient Funds.\nYour card does not have $8,900 USD (~10,60,000 BDT) available balance!\n\nPro Tip: It took a lot of trouble to make this website, please encourage by donating (Muaz -class 10)");
+            closePaywall();
+        }
+    </script>
 
     <script src="assets/script.js"></script>
 </body>
